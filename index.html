@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Rollernauti Bot</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #f9fafb;
+      --card-bg: #ffffff;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --text: #111827;
+      --text-light: #6b7280;
+      --radius: 16px;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      margin: 0;
+      background: var(--bg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+    }
+
+    .card {
+      background: var(--card-bg);
+      width: 90%;
+      max-width: 400px;
+      padding: 24px 28px;
+      border-radius: var(--radius);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+      text-align: center;
+    }
+
+    .logo {
+      width: 150px;
+      height: 150px;
+      margin-bottom: -20px;
+      object-fit: contain;
+    }
+
+    h1 {
+      font-size: 1.4rem;
+      margin-bottom: 18px;
+      color: var(--text);
+    }
+
+    p {
+      font-size: 0.9rem;
+      color: var(--text-light);
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text);
+      font-size: 0.9rem;
+      text-align: left;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 16px;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: #f9fafb;
+      transition: border 0.2s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--primary);
+      outline: none;
+      background: #fff;
+    }
+
+    button {
+      width: 100%;
+      padding: 14px;
+      background: var(--primary);
+      color: white;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+    }
+
+    .footer {
+      text-align: center;
+      font-size: 0.8rem;
+      color: var(--text-light);
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <!-- <img src="logo.jpeg" alt="Logo" class="logo"> -->
+    <h1>Proponi un appuntamento</h1>
+    <form id="uscitaForm">
+      <label for="data">Data</label>
+      <input type="date" id="data" name="data" required>
+
+      <label for="orarioRitrovo">Orario di ritrovo</label>
+      <input type="time" id="orarioRitrovo" name="orarioRitrovo" required>
+
+      <label for="orarioPartenza">Orario di partenza (se freeride)</label>
+      <input type="time" id="orarioPartenza" name="orarioPartenza">
+
+      <label for="luogo">Luogo di ritrovo</label>
+      <input type="text" id="luogo" name="luogo" placeholder="Es. Pista piazzetta Madre Teresa di Calcutta" required>
+
+      <label for="note">Note (opzionale)</label>
+      <textarea id="note" name="note" rows="3" placeholder="Es. Portate acqua e protezioni"></textarea>
+
+      <label for="livello"> Bollino (se freeride)</label>
+      <select id="livello">
+        <option value="nessuno">Nessuno</option>
+        <option value="verde">Verde 🟢​</option>
+        <option value="giallo">Giallo 🟡​</option>
+        <option value="rosso">Rosso 🔴</option>
+      </select>
+
+      <button type="submit">✅ Crea appuntamento</button>
+    </form>
+  </div>
+
+  <script>
+    // Telegram WebApp API
+    const tg = window.Telegram.WebApp;
+    tg.expand(); // allarga il WebApp a schermo intero
+
+    const form = document.getElementById('uscitaForm');
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const data = {
+        data: form.data.value,
+        orarioRitrovo: form.orarioRitrovo.value,
+        orarioPartenza: form.orarioPartenza.value,
+        luogo: form.luogo.value,
+        livello: form.livello.value,
+        note: form.note.value
+      };
+
+      // invia i dati al bot
+      tg.sendData(JSON.stringify(data));
+
+      tg.close(); // chiudi la webapp
+    });
+  </script>
+</body>
+</html>
