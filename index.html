@@ -6,6 +6,10 @@
   <title>Rollernauti Bot</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
   <style>
     * {
       box-sizing: border-box;
@@ -128,6 +132,28 @@
       <label for="luogo">Luogo di ritrovo</label>
       <input type="text" id="luogo" name="luogo" placeholder="Es. Pista piazzetta Madre Teresa di Calcutta" required>
 
+      <label for="location" style="font-weight: bold;">📍 Seleziona la location:</label>
+      <div id="map" style="height: 300px; border-radius: 12px; margin-bottom: 10px;"></div>
+
+      <input type="hidden" name="latitude" id="latitude" />
+      <input type="hidden" name="longitude" id="longitude" />
+
+      <input
+        type="text"
+        name="location_name"
+        id="location_name"
+        placeholder="Indirizzo selezionato"
+        readonly
+        style="
+          width: 100%;
+          padding: 10px;
+          border-radius: 8px;
+          border: 1px solid #ccc;
+          margin-bottom: 20px;
+          font-size: 16px;
+        "
+      />
+
       <label for="note">Note (opzionale)</label>
       <textarea id="note" name="note" rows="3" placeholder="Es. Portate acqua e protezioni"></textarea>
 
@@ -144,9 +170,8 @@
   </div>
 
   <script>
-    // Telegram WebApp API
     const tg = window.Telegram.WebApp;
-    tg.expand(); // allarga il WebApp a schermo intero
+    tg.expand(); 
 
     const form = document.getElementById('uscitaForm');
 
@@ -162,11 +187,52 @@
         note: form.note.value
       };
 
-      // invia i dati al bot
       tg.sendData(JSON.stringify(data));
-
-      tg.close(); // chiudi la webapp
+      tg.close(); 
     });
+
+    const map = L.map("map").setView([40.3541289, 18.153695], 6);
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: "&copy; OpenStreetMap contributors",
+    }).addTo(map);
+
+    let marker;
+
+    map.on("click", async function (e) {
+      const { lat, lng } = e.latlng;
+
+      if (marker) map.removeLayer(marker);
+      marker = L.marker([lat, lng]).addTo(map);
+
+      document.getElementById("latitude").value = lat;
+      document.getElementById("longitude").value = lng;
+
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        document.getElementById("location_name").value = data.display_name || `${lat}, ${lng}`;
+      } catch (err) {
+        console.error("Errore nel geocoding:", err);
+      }
+    });
+
+    L.Control.geocoder({
+      defaultMarkGeocode: false,
+      geocoder: L.Control.Geocoder.nominatim(),
+    })
+      .on("markgeocode", function (e) {
+        const { center, name } = e.geocode;
+
+        if (marker) map.removeLayer(marker);
+        marker = L.marker(center).addTo(map);
+
+        map.setView(center, 16);
+        document.getElementById("latitude").value = center.lat;
+        document.getElementById("longitude").value = center.lng;
+        document.getElementById("location_name").value = name;
+      })
+      .addTo(map);
   </script>
 </body>
 </html>
