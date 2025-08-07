@@ -113,6 +113,22 @@
       color: var(--text-light);
       margin-top: 12px;
     }
+
+    .leaflet-control-geocoder-form input {
+      height: 20px !important;
+      padding: 4px 8px;
+      font-size: 14px;
+    }
+
+    .leaflet-control-geocoder {
+      font-size: 14px;
+    }
+
+    .leaflet-control-geocoder-icon {
+      width: 20px;
+      height: 20px;
+    }
+    
   </style>
 </head>
 <body>
@@ -191,7 +207,7 @@
       tg.close(); 
     });
 
-    const map = L.map("map").setView([40.3541289, 18.153695], 6);
+    const map = L.map("map").setView([40.3533071, 18.1751699], 12);
 
     L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
       attribution: "&copy; OpenStreetMap contributors",
