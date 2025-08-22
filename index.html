@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rollernauti Bot</title>
+  <title>Eventi Rollernauti</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -13,6 +13,17 @@
   <style>
     * {
       box-sizing: border-box;
+    }
+
+    #geocoder-results {
+      background: #fefefe;
+      border: 1px solid #e5e7eb;
+      border-top: none;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      max-height: 220px;
+      overflow-y: auto;
+      margin-bottom: 16px;
     }
 
     :root {
@@ -114,19 +125,49 @@
       margin-top: 12px;
     }
 
-    .leaflet-control-geocoder-form input {
-      height: 20px !important;
-      padding: 4px 8px;
-      font-size: 14px;
-    }
-
     .leaflet-control-geocoder {
-      font-size: 14px;
+      visibility: hidden; /* Hide default control */
     }
 
-    .leaflet-control-geocoder-icon {
-      width: 20px;
-      height: 20px;
+    .geocoder-result-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 12px 14px;
+      cursor: pointer;
+      border-bottom: 1px solid #f1f1f1;
+      background-color: #fefefe;
+      transition: background-color 0.2s;
+    }
+
+    .geocoder-result-item:hover {
+      background-color: #f3f4f6;
+    }
+
+    .geocoder-result-item:last-child { 
+      border-bottom: none; 
+    }
+
+    .geocoder-result-item-icon {
+      font-size: 18px;
+      color: var(--primary);
+      margin-top: 2px;
+    }
+
+    .geocoder-result-item-content {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .geocoder-result-item-title {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: var(--text);
+    }
+
+    .geocoder-result-item-subtitle {
+      font-size: 0.8rem;
+      color: var(--text-light);
     }
     
   </style>
@@ -135,21 +176,21 @@
   <div class="card">
     <img src="logo.jpeg" alt="Logo" class="logo">
     <h1>Proponi un appuntamento</h1>
-    <form id="uscitaForm">
-      <label for="data">Data</label>
-      <input type="date" id="data" name="data" required>
+    <form id="skatingEventForm">
+      <label for="date">Data</label>
+      <input type="date" id="date" name="date" required>
 
-      <label for="orarioRitrovo">Orario di ritrovo</label>
-      <input type="time" id="orarioRitrovo" name="orarioRitrovo" required>
+      <label for="meeting_time">Orario di ritrovo</label>
+      <input type="time" id="meeting_time" name="meeting_time" required>
 
-      <label for="orarioPartenza">Orario di partenza (se freeride)</label>
-      <input type="time" id="orarioPartenza" name="orarioPartenza">
+      <label for="departure_time">Orario di partenza (se freeride)</label>
+      <input type="time" id="departure_time" name="departure_time">
 
-      <label for="luogo">Luogo di ritrovo</label>
-      <input type="text" id="luogo" name="luogo" placeholder="Es. Pista piazzetta Madre Teresa di Calcutta" required>
+      <!-- <label for="luogo">Luogo di ritrovo</label>
+      <input type="text" id="luogo" name="luogo" placeholder="Es. Pista piazzetta Madre Teresa di Calcutta" required> -->
 
-      <label for="location" style="font-weight: bold;">📍 Seleziona la location:</label>
-      <div id="map" style="height: 300px; border-radius: 12px; margin-bottom: 10px;"></div>
+      <label for="location_name">Luogo di ritrovo</label>
+      <div id="map" style="height: 250px; border-radius: 12px; margin-bottom: 10px;"></div>
 
       <input type="hidden" name="latitude" id="latitude" />
       <input type="hidden" name="longitude" id="longitude" />
@@ -158,27 +199,21 @@
         type="text"
         name="location_name"
         id="location_name"
-        placeholder="Indirizzo selezionato"
-        readonly
-        style="
-          width: 100%;
-          padding: 10px;
-          border-radius: 8px;
-          border: 1px solid #ccc;
-          margin-bottom: 20px;
-          font-size: 16px;
-        "
+        placeholder="Cerca o seleziona sulla mappa..." 
+        style="margin-bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0;"
+        required
       />
+      <div id="geocoder-results"></div>
 
       <label for="note">Note (opzionale)</label>
       <textarea id="note" name="note" rows="3" placeholder="Es. Portate acqua e protezioni"></textarea>
 
-      <label for="livello"> Bollino (se freeride)</label>
-      <select id="livello">
-        <option value="nessuno">Nessuno</option>
-        <option value="verde">Verde 🟢​</option>
-        <option value="giallo">Giallo 🟡​</option>
-        <option value="rosso">Rosso 🔴</option>
+      <label for="difficulty"> Bollino (se freeride)</label>
+      <select id="difficulty">
+        <option value="none">Nessuno</option>
+        <option value="beginner">Verde 🟢​</option>
+        <option value="intermediate">Giallo 🟡​</option>
+        <option value="hard">Rosso 🔴</option>
       </select>
 
       <button type="submit">✅ Crea appuntamento</button>
@@ -189,17 +224,36 @@
     const tg = window.Telegram.WebApp;
     tg.expand(); 
 
-    const form = document.getElementById('uscitaForm');
+    const form = document.getElementById('skatingEventForm');
+    const locationNameInput = document.getElementById('location_name');
+    const latInput = document.getElementById('latitude');
+    const lonInput = document.getElementById('longitude');
+    const resultsContainer = document.getElementById('geocoder-results');
+
+    function debounce(func, delay) {
+      let timeout;
+      return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), delay);
+      };
+    }
+    
+    // Clear coordinates if user types manually
+    locationNameInput.addEventListener('input', () => {
+      latInput.value = '';
+      lonInput.value = '';
+    });
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
-
       const data = {
-        data: form.data.value,
-        orarioRitrovo: form.orarioRitrovo.value,
-        orarioPartenza: form.orarioPartenza.value,
-        luogo: form.luogo.value,
-        livello: form.livello.value,
+        date: form.date.value,
+        meetingTime: form.meeting_time.value,
+        departureTime: form.departure_time.value,
+        locationName: form.location_name.value,
+        latitude: form.latitude.value,
+        longitude: form.longitude.value,
+        difficulty: form.difficulty.value,
         note: form.note.value
       };
 
@@ -214,41 +268,98 @@
     }).addTo(map);
 
     let marker;
+    const geocoder = L.Control.Geocoder.nominatim();
 
-    map.on("click", async function (e) {
-      const { lat, lng } = e.latlng;
-
+    function setMarkerAndLocation(lat, lng, name) {
       if (marker) map.removeLayer(marker);
       marker = L.marker([lat, lng]).addTo(map);
+      latInput.value = lat;
+      lonInput.value = lng;
+      locationNameInput.value = name;
+      resultsContainer.innerHTML = '';
+    }
 
-      document.getElementById("latitude").value = lat;
-      document.getElementById("longitude").value = lng;
-
-      try {
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
-        const data = await res.json();
-        document.getElementById("location_name").value = data.display_name || `${lat}, ${lng}`;
-      } catch (err) {
-        console.error("Errore nel geocoding:", err);
+    // Manual typing clears coordinates
+    locationNameInput.addEventListener('input', () => {
+      // Don't clear if the input is being set by our script
+      if (locationNameInput.value !== lonInput.value) {
+        latInput.value = '';
+        lonInput.value = '';
       }
     });
 
-    L.Control.geocoder({
-      defaultMarkGeocode: false,
-      geocoder: L.Control.Geocoder.nominatim(),
-    })
-      .on("markgeocode", function (e) {
-        const { center, name } = e.geocode;
+    map.on("click", async function (e) {
+      const { lat, lng } = e.latlng;
+      resultsContainer.innerHTML = '';
 
-        if (marker) map.removeLayer(marker);
-        marker = L.marker(center).addTo(map);
+      // geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom())).then(results => {
+      //   const r = results[0];
+      //   if (!r) {
+      //     console.info("No results found for coordinates:", lat, lng);
+      //     // Fallback to coordinates if geocoding fails
+      //     setMarkerAndLocation(lat, lng, `${lat}, ${lng}`);
+      //     return;
+      //   }
+      //   const displayName = r.name || `${lat}, ${lng}`;
+      //   setMarkerAndLocation(lat, lng, displayName);
+      // });
 
-        map.setView(center, 16);
-        document.getElementById("latitude").value = center.lat;
-        document.getElementById("longitude").value = center.lng;
-        document.getElementById("location_name").value = name;
-      })
-      .addTo(map);
+      try {
+        // const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+        const res = await fetch(`http://127.0.0.1:5000/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        const displayName = data.display_name || `${lat}, ${lng}`;
+        setMarkerAndLocation(lat, lng, displayName);
+      } catch (err) {
+        console.error("Geocoding error:", err);
+        // Fallback to coordinates if geocoding fails
+        setMarkerAndLocation(lat, lng, `${lat}, ${lng}`);
+      }
+    });
+
+
+    // Geocoding from text input (debounced)
+    locationNameInput.addEventListener('input', debounce(async (e) => {
+      const query = e.target.value
+      if (query.length < 3) {
+        resultsContainer.innerHTML = '';
+        return
+      }
+      geocoder.geocode(query).then(function (results) {
+        resultsContainer.innerHTML = '';
+        console.log("Geocoding results:", results);
+         // Fetch from our proxy server to avoid CORS issues
+        if (!results || results.length === 0) return;
+        results.forEach(result => {
+          const item = document.createElement('div');
+          item.className = 'geocoder-result-item';
+          item.innerHTML = `
+            <div class="geocoder-result-item-icon">📍</div>
+            <div class="geocoder-result-item-content">
+              <div class="geocoder-result-item-title">${result.name}</div>
+              <div class="geocoder-result-item-subtitle">${result.properties?.display_name || ''}</div>
+            </div>
+          `;
+          item.dataset.lat = result.center.lat;
+          item.dataset.lon = result.center.lng;
+          item.dataset.name = result.name;
+          resultsContainer.appendChild(item);
+        });
+      });
+    }, 500));
+
+    // Clicking a geocoder result
+    resultsContainer.addEventListener('click', (e) => {
+      console.log("Clicked:", e.target);
+      const item = e.target.closest('.geocoder-result-item');
+      if (item) {
+        console.log("Selected item:", item);
+        const { lat, lon, name } = item.dataset;
+        setMarkerAndLocation(lat, lon, name);
+      }
+    });
+
+    L.Control.geocoder({ geocoder, defaultMarkGeocode: false }).addTo(map);
   </script>
 </body>
 </html>
