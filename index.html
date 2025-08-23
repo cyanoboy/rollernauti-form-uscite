@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Eventi Rollernauti</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
@@ -196,6 +196,13 @@
     /* Hide default Leaflet geocoder button */
     .leaflet-control-geocoder {
       visibility: hidden;
+    }
+
+    input[type="time"] {
+      touch-action: manipulation;
+      -webkit-appearance: none;
+      font-size: 1rem; /* helps rendering properly */
+      max-width: 100%;
     }
 
     /* Responsive tweaks */
