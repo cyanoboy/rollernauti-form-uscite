@@ -317,6 +317,7 @@
     function setMarkerAndLocation(lat, lng, name) {
       if (marker) map.removeLayer(marker);
       marker = L.marker([lat, lng]).addTo(map);
+      map.setView([lat, lng], 17);
       latInput.value = lat;
       lonInput.value = lng;
       locationNameInput.value = name;
@@ -335,20 +336,16 @@
     map.on("click", async function (e) {
       const { lat, lng } = e.latlng;
       resultsContainer.innerHTML = '';
-
-      geocoder.reverse(e.latlng, map.options.crs.scale(map.getZoom())).then(results => {
-        const r = results[0];
-        if (!r) {
-          console.info("No results found for coordinates:", lat, lng);
-          // Fallback to coordinates if geocoding fails
-          setMarkerAndLocation(lat, lng, `${lat}, ${lng}`);
-          return;
-        }
-        console.log("Reverse geocoding result:", r);
-         // Use the name if available, otherwise fallback to coordinates
-        const displayName = r.name || `${lat}, ${lng}`;
+      try {
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`);
+        const data = await res.json();
+        const displayName = data.display_name || `${lat}, ${lng}`;
         setMarkerAndLocation(lat, lng, displayName);
-      });
+      } catch (err) {
+        console.error("Geocoding error:", err);
+        // Fallback to coordinates if geocoding fails
+        setMarkerAndLocation(lat, lng, `${lat}, ${lng}`);
+      }
     });
 
 
